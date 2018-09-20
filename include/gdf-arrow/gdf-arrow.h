@@ -5,7 +5,7 @@
 #include <cstdint>
 #include "cffi/types.h"
 
-#define GDF_ARROW_VALID_BITSIZE (sizeof(gdf_arrow_valid_type) * 8)
+#define GDF_ARROW_VALID_BITSIZE (sizeof(gdf_valid_type) * 8)
 
 extern "C" {
 #include "cffi/functions.h"

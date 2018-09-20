@@ -73,19 +73,19 @@ struct JoinTest : public testing::Test
   multi_column_t left_columns;
   multi_column_t right_columns;
 
-  // Type for a unique_ptr to a gdf_arrow_column with a custom deleter
+  // Type for a unique_ptr to a gdf_column with a custom deleter
   // Custom deleter is defined at construction
-  using gdf_arrow_col_pointer = typename std::unique_ptr<gdf_arrow_column, std::function<void(gdf_arrow_column*)>>;
+  using gdf_arrow_col_pointer = typename std::unique_ptr<gdf_column, std::function<void(gdf_column*)>>;
 
-  // Containers for unique_ptrs to gdf_arrow_columns that will be used in the gdf_arrow_join functions
+  // Containers for unique_ptrs to gdf_columns that will be used in the gdf_arrow_join functions
   // unique_ptrs are used to automate freeing device memory
   std::vector<gdf_arrow_col_pointer> gdf_arrow_left_columns;
   std::vector<gdf_arrow_col_pointer> gdf_arrow_right_columns;
 
-  // Containers for the raw pointers to the gdf_arrow_columns that will be used as input
+  // Containers for the raw pointers to the gdf_columns that will be used as input
   // to the gdf_arrow_join functions
-  std::vector<gdf_arrow_column*> gdf_arrow_raw_left_columns;
-  std::vector<gdf_arrow_column*> gdf_arrow_raw_right_columns;
+  std::vector<gdf_column*> gdf_arrow_raw_left_columns;
+  std::vector<gdf_column*> gdf_arrow_raw_right_columns;
 
   JoinTest()
   {
@@ -101,43 +101,43 @@ struct JoinTest : public testing::Test
 
     /* --------------------------------------------------------------------------*/
     /**
-     * @Synopsis  Creates a unique_ptr that wraps a gdf_arrow_column structure intialized with a host vector
+     * @Synopsis  Creates a unique_ptr that wraps a gdf_column structure intialized with a host vector
      *
-     * @Param host_vector The host vector whose data is used to initialize the gdf_arrow_column
+     * @Param host_vector The host vector whose data is used to initialize the gdf_column
      *
-     * @Returns A unique_ptr wrapping the new gdf_arrow_column
+     * @Returns A unique_ptr wrapping the new gdf_column
      */
     /* ----------------------------------------------------------------------------*/
   template <typename col_type>
-  gdf_arrow_col_pointer create_gdf_arrow_column(std::vector<col_type> const & host_vector)
+  gdf_arrow_col_pointer create_gdf_column(std::vector<col_type> const & host_vector)
   {
-    // Deduce the type and set the gdf_arrow_dtype accordingly
-    gdf_arrow_dtype gdf_arrow_col_type;
-    if(std::is_same<col_type,int8_t>::value) gdf_arrow_col_type = GDF_ARROW_INT8;
-    else if(std::is_same<col_type,uint8_t>::value) gdf_arrow_col_type = GDF_ARROW_INT8;
-    else if(std::is_same<col_type,int16_t>::value) gdf_arrow_col_type = GDF_ARROW_INT16;
-    else if(std::is_same<col_type,uint16_t>::value) gdf_arrow_col_type = GDF_ARROW_INT16;
-    else if(std::is_same<col_type,int32_t>::value) gdf_arrow_col_type = GDF_ARROW_INT32;
-    else if(std::is_same<col_type,uint32_t>::value) gdf_arrow_col_type = GDF_ARROW_INT32;
-    else if(std::is_same<col_type,int64_t>::value) gdf_arrow_col_type = GDF_ARROW_INT64;
-    else if(std::is_same<col_type,uint64_t>::value) gdf_arrow_col_type = GDF_ARROW_INT64;
-    else if(std::is_same<col_type,float>::value) gdf_arrow_col_type = GDF_ARROW_FLOAT32;
-    else if(std::is_same<col_type,double>::value) gdf_arrow_col_type = GDF_ARROW_FLOAT64;
+    // Deduce the type and set the gdf_dtype accordingly
+    gdf_dtype gdf_arrow_col_type;
+    if(std::is_same<col_type,int8_t>::value) gdf_arrow_col_type = GDF_INT8;
+    else if(std::is_same<col_type,uint8_t>::value) gdf_arrow_col_type = GDF_INT8;
+    else if(std::is_same<col_type,int16_t>::value) gdf_arrow_col_type = GDF_INT16;
+    else if(std::is_same<col_type,uint16_t>::value) gdf_arrow_col_type = GDF_INT16;
+    else if(std::is_same<col_type,int32_t>::value) gdf_arrow_col_type = GDF_INT32;
+    else if(std::is_same<col_type,uint32_t>::value) gdf_arrow_col_type = GDF_INT32;
+    else if(std::is_same<col_type,int64_t>::value) gdf_arrow_col_type = GDF_INT64;
+    else if(std::is_same<col_type,uint64_t>::value) gdf_arrow_col_type = GDF_INT64;
+    else if(std::is_same<col_type,float>::value) gdf_arrow_col_type = GDF_FLOAT32;
+    else if(std::is_same<col_type,double>::value) gdf_arrow_col_type = GDF_FLOAT64;
 
-    // Create a new instance of a gdf_arrow_column with a custom deleter that will free
+    // Create a new instance of a gdf_column with a custom deleter that will free
     // the associated device memory when it eventually goes out of scope
-    auto deleter = [](gdf_arrow_column* col){col->size = 0; cudaFree(col->data);};
-    gdf_arrow_col_pointer the_column{new gdf_arrow_column, deleter};
+    auto deleter = [](gdf_column* col){col->size = 0; cudaFree(col->data);};
+    gdf_arrow_col_pointer the_column{new gdf_column, deleter};
 
-    // Allocate device storage for gdf_arrow_column and copy contents from host_vector
+    // Allocate device storage for gdf_column and copy contents from host_vector
     cudaMalloc(&(the_column->data), host_vector.size() * sizeof(col_type));
     cudaMemcpy(the_column->data, host_vector.data(), host_vector.size() * sizeof(col_type), cudaMemcpyHostToDevice);
 
-    // Fill the gdf_arrow_column members
+    // Fill the gdf_column members
     the_column->valid = nullptr;
     the_column->size = host_vector.size();
     the_column->dtype = gdf_arrow_col_type;
-    gdf_arrow_dtype_extra_info extra_info;
+    gdf_dtype_extra_info extra_info;
     extra_info.time_unit = TIME_UNIT_NONE;
     the_column->dtype_info = extra_info;
 
@@ -145,33 +145,33 @@ struct JoinTest : public testing::Test
   }
 
   // Compile time recursion to convert each vector in a tuple of vectors into
-  // a gdf_arrow_column and append it to a vector of gdf_arrow_columns
+  // a gdf_column and append it to a vector of gdf_columns
   template<std::size_t I = 0, typename... Tp>
   inline typename std::enable_if<I == sizeof...(Tp), void>::type
-  convert_tuple_to_gdf_arrow_columns(std::vector<gdf_arrow_col_pointer> &gdf_arrow_columns,std::tuple<std::vector<Tp>...>& t)
+  convert_tuple_to_gdf_columns(std::vector<gdf_arrow_col_pointer> &gdf_columns,std::tuple<std::vector<Tp>...>& t)
   {
     //bottom of compile-time recursion
     //purposely empty...
   }
   template<std::size_t I = 0, typename... Tp>
   inline typename std::enable_if<I < sizeof...(Tp), void>::type
-  convert_tuple_to_gdf_arrow_columns(std::vector<gdf_arrow_col_pointer> &gdf_arrow_columns,std::tuple<std::vector<Tp>...>& t)
+  convert_tuple_to_gdf_columns(std::vector<gdf_arrow_col_pointer> &gdf_columns,std::tuple<std::vector<Tp>...>& t)
   {
-    // Creates a gdf_arrow_column for the current vector and pushes it onto
-    // the vector of gdf_arrow_columns
-    gdf_arrow_columns.push_back(create_gdf_arrow_column(std::get<I>(t)));
+    // Creates a gdf_column for the current vector and pushes it onto
+    // the vector of gdf_columns
+    gdf_columns.push_back(create_gdf_column(std::get<I>(t)));
 
     //recurse to next vector in tuple
-    convert_tuple_to_gdf_arrow_columns<I + 1, Tp...>(gdf_arrow_columns, t);
+    convert_tuple_to_gdf_columns<I + 1, Tp...>(gdf_columns, t);
   }
 
-  // Converts a tuple of host vectors into a vector of gdf_arrow_columns
+  // Converts a tuple of host vectors into a vector of gdf_columns
   std::vector<gdf_arrow_col_pointer>
-  initialize_gdf_arrow_columns(multi_column_t host_columns)
+  initialize_gdf_columns(multi_column_t host_columns)
   {
-    std::vector<gdf_arrow_col_pointer> gdf_arrow_columns;
-    convert_tuple_to_gdf_arrow_columns(gdf_arrow_columns, host_columns);
-    return gdf_arrow_columns;
+    std::vector<gdf_arrow_col_pointer> gdf_columns;
+    convert_tuple_to_gdf_columns(gdf_columns, host_columns);
+    return gdf_columns;
   }
 
   /* --------------------------------------------------------------------------*/
@@ -192,10 +192,10 @@ struct JoinTest : public testing::Test
     initialize_tuple(left_columns, left_column_length, left_column_range);
     initialize_tuple(right_columns, right_column_length, right_column_range);
 
-    gdf_arrow_left_columns = initialize_gdf_arrow_columns(left_columns);
-    gdf_arrow_right_columns = initialize_gdf_arrow_columns(right_columns);
+    gdf_arrow_left_columns = initialize_gdf_columns(left_columns);
+    gdf_arrow_right_columns = initialize_gdf_columns(right_columns);
 
-    // Fill vector of raw pointers to gdf_arrow_columns
+    // Fill vector of raw pointers to gdf_columns
     for(auto const& c : gdf_arrow_left_columns){
       gdf_arrow_raw_left_columns.push_back(c.get());
     }
@@ -331,32 +331,32 @@ struct JoinTest : public testing::Test
 
     gdf_arrow_join_result_type * gdf_arrow_join_result;
 
-    gdf_arrow_error result_error{GDF_ARROW_SUCCESS};
+    gdf_error result_error{GDF_SUCCESS};
 
     // Use single column join when there's only a single column
     if(num_columns == 1){
-      gdf_arrow_column * left_gdf_arrow_column = gdf_arrow_raw_left_columns[0];
-      gdf_arrow_column * right_gdf_arrow_column = gdf_arrow_raw_right_columns[0];
+      gdf_column * left_gdf_column = gdf_arrow_raw_left_columns[0];
+      gdf_column * right_gdf_column = gdf_arrow_raw_right_columns[0];
       switch(join_method)
       {
         case join_kind::LEFT:
           {
-            result_error = gdf_arrow_left_join_generic(left_gdf_arrow_column,
-                                                 right_gdf_arrow_column,
+            result_error = gdf_arrow_left_join_generic(left_gdf_column,
+                                                 right_gdf_column,
                                                  &gdf_arrow_join_result);
             break;
           }
         case join_kind::INNER:
           {
-            result_error = gdf_arrow_inner_join_generic(left_gdf_arrow_column,
-                                                  right_gdf_arrow_column,
+            result_error = gdf_arrow_inner_join_generic(left_gdf_column,
+                                                  right_gdf_column,
                                                   &gdf_arrow_join_result);
             break;
           }
         case join_kind::OUTER:
           {
-            result_error = gdf_arrow_outer_join_generic(left_gdf_arrow_column,
-                                                  right_gdf_arrow_column,
+            result_error = gdf_arrow_outer_join_generic(left_gdf_column,
+                                                  right_gdf_column,
                                                   &gdf_arrow_join_result);
             break;
           }
@@ -369,23 +369,23 @@ struct JoinTest : public testing::Test
     // Otherwise use the multicolumn join
     else
     {
-      gdf_arrow_column ** left_gdf_arrow_columns = gdf_arrow_raw_left_columns.data();
-      gdf_arrow_column ** right_gdf_arrow_columns = gdf_arrow_raw_right_columns.data();
+      gdf_column ** left_gdf_columns = gdf_arrow_raw_left_columns.data();
+      gdf_column ** right_gdf_columns = gdf_arrow_raw_right_columns.data();
       switch(join_method)
       {
         case join_kind::LEFT:
           {
             result_error = gdf_arrow_multi_left_join_generic(num_columns,
-                                                       left_gdf_arrow_columns,
-                                                       right_gdf_arrow_columns,
+                                                       left_gdf_columns,
+                                                       right_gdf_columns,
                                                        &gdf_arrow_join_result);
             break;
           }
         case join_kind::INNER:
           {
             //result_error =  gdf_arrow_multi_inner_join_generic(num_columns,
-            //                                             left_gdf_arrow_columns,
-            //                                             right_gdf_arrow_columns,
+            //                                             left_gdf_columns,
+            //                                             right_gdf_columns,
             //                                             &gdf_arrow_join_result);
             std::cout << "Multi column *inner* joins not supported yet\n";
             EXPECT_TRUE(false);
@@ -396,7 +396,7 @@ struct JoinTest : public testing::Test
           EXPECT_TRUE(false);
       }
     }
-    EXPECT_EQ(GDF_ARROW_SUCCESS, result_error) << "The gdf_arrow join function did not complete successfully";
+    EXPECT_EQ(GDF_SUCCESS, result_error) << "The gdf_arrow join function did not complete successfully";
 
     // The output is an array of size `n` where the first n/2 elements are the
     // left_indices and the last n/2 elements are the right indices

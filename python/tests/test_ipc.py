@@ -59,11 +59,11 @@ def test_ipc():
 
     # Use GDF_ARROW IPC parser
     schema_ptr = ffi.cast("void*", cpu_data.ctypes.data)
-    ipch = libgdf_arrow.gdf_arrow_ipc_parser_open(schema_ptr, cpu_data.size)
+    ipch = libgdf_arrow.gdf_ipc_parser_open(schema_ptr, cpu_data.size)
 
-    if libgdf_arrow.gdf_arrow_ipc_parser_failed(ipch):
-        assert 0, str(ffi.string(libgdf_arrow.gdf_arrow_ipc_parser_get_error(ipch)))
-    jsonraw = libgdf_arrow.gdf_arrow_ipc_parser_get_schema_json(ipch)
+    if libgdf_arrow.gdf_ipc_parser_failed(ipch):
+        assert 0, str(ffi.string(libgdf_arrow.gdf_ipc_parser_get_error(ipch)))
+    jsonraw = libgdf_arrow.gdf_ipc_parser_get_schema_json(ipch)
     jsontext = ffi.string(jsonraw).decode()
     json_schema = json.loads(jsontext)
     print('json_schema:')
@@ -76,20 +76,20 @@ def test_ipc():
 
     devptr = ffi.cast("void*", rb_gpu_data.device_ctypes_pointer.value)
 
-    libgdf_arrow.gdf_arrow_ipc_parser_open_recordbatches(ipch, devptr, rb_gpu_data.size)
+    libgdf_arrow.gdf_ipc_parser_open_recordbatches(ipch, devptr, rb_gpu_data.size)
 
-    if libgdf_arrow.gdf_arrow_ipc_parser_failed(ipch):
-        assert 0, str(ffi.string(libgdf_arrow.gdf_arrow_ipc_parser_get_error(ipch)))
+    if libgdf_arrow.gdf_ipc_parser_failed(ipch):
+        assert 0, str(ffi.string(libgdf_arrow.gdf_ipc_parser_get_error(ipch)))
 
-    jsonraw = libgdf_arrow.gdf_arrow_ipc_parser_get_layout_json(ipch)
+    jsonraw = libgdf_arrow.gdf_ipc_parser_get_layout_json(ipch)
     jsontext = ffi.string(jsonraw).decode()
     json_rb = json.loads(jsontext)
     print('json_rb:')
     pprint(json_rb)
 
-    offset = libgdf_arrow.gdf_arrow_ipc_parser_get_data_offset(ipch)
+    offset = libgdf_arrow.gdf_ipc_parser_get_data_offset(ipch)
 
-    libgdf_arrow.gdf_arrow_ipc_parser_close(ipch)
+    libgdf_arrow.gdf_ipc_parser_close(ipch)
 
     # Check
     dicts = json_schema['dictionaries']
